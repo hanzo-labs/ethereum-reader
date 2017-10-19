@@ -6,3 +6,5 @@ skip_files:
   - .ethereum/*
 manual_scaling:
   instances: 1
+env_variables:
+  ENVIRONMENT: production
