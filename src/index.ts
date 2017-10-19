@@ -29,6 +29,8 @@ async function main() {
   // Determine geth/parity node URI
   var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.202.166.74:80' : 'http://35.192.74.139:80'
 
+  console.log(`Starting Reader For '${ network }' Using Node '${ nodeURI }'`)
+
   console.log('Initializing Bloom Filter')
 
   await updateBloom(bloom, datastore, network)
@@ -50,8 +52,7 @@ async function main() {
   console.log('Connected')
 
   // Report current full block
-  var number = web3.eth.blockNumber
-  console.log('Current FullBlock Is', number)
+  console.log('Current FullBlock Is', web3.eth.blockNumber)
 
   // Report Syncing Status
   var lastBlockData = {}
@@ -66,7 +67,7 @@ async function main() {
     }
   })
 
-  var lastBlock = null
+  var lastBlock = undefined
 
   // Query to find the latest block read
   var query = datastore.createQuery('block').filter('Type', '=', network).order('EthereumBlockNumber', { descending: true }).limit(1)
@@ -81,6 +82,7 @@ async function main() {
     lastBlock = results[0].EthereumBlockNumber
     console.log(`Resuming From Block #${ lastBlock }`)
   } else {
+    lastBlock = 'latest'
     console.log(`Resuming From 'latest'`)
   }
   console.log('Additional Query Info:\n', JSON.stringify(qInfo))
@@ -90,11 +92,11 @@ async function main() {
   // Start watching for new blocks
   var filter = web3.eth.filter({
     // 1892728
-    fromBlock: lastBlock || 'latest',
+    fromBlock: lastBlock,
     toBlock:   'latest', //1892800,
   })
 
-  var lastNumber = lastBlock == 'latest' ? lastBlock : lastBlock - 1
+  var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1
 
   filter.watch(async function(error, result) {
     if (error) {
@@ -152,29 +154,42 @@ async function main() {
             continue
           }
 
+          // Disabled to save calls
           // Do the actual query and fetch
-          savePendingBlockTransaction(datastore, transaction, network, address, usage)
+          // savePendingBlockTransaction(datastore, transaction, network, address, usage)
         }
 
-        readingBlockPromise.then(()=>{
-          return updatePendingBlock(datastore, data)
-        }).then(()=> {
+        // Disabled to save calls
+        // readingBlockPromise.then(()=>{
+        //   return updatePendingBlock(datastore, data)
+        // }).then(()=> {
+        //   var confirmationBlock = result.number - confirmations
+        //   return Promise.all([
+        //     // getAndUpdateConfirmedBlock(
+        //     //   datastore,
+        //     //   network,
+        //     //   confirmationBlock,
+        //     //   confirmations
+        //     // ),
+        //     getAndUpdateConfirmedBlockTransaction(
+        //       web3,
+        //       datastore,
+        //       network,
+        //       confirmationBlock,
+        //       confirmations
+        //     ),
+        //   ])
+        // })
+
+        // It is cheaper on calls to just update the blocktransactions instead
+        readingBlockPromise.then(() => {
           var confirmationBlock = result.number - confirmations
-          return Promise.all([
-            getAndUpdateConfirmedBlock(
-              datastore,
-              network,
-              confirmationBlock,
-              confirmations
-            ),
-            getAndUpdateConfirmedBlockTransaction(
-              web3,
-              datastore,
-              network,
-              confirmationBlock,
-              confirmations
-            ),
-          ])
+          return getAndUpdateConfirmedBlockTransaction(
+            web3,
+            datastore,
+            network,
+            confirmationBlock,
+            confirmations)
         })
       })
     }

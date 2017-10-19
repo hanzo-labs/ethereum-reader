@@ -86,7 +86,9 @@ function saveReadingBlock(datastore, network, result) {
     EthereumBlockUncles:           toDatastoreArray(result.uncles, 'string'),
 
     Type:   network,
-    Status: "reading",
+    // Disabled because we aren't running the pending/confirmed code for blocks
+    // to save calls
+    // Status: "reading",
 
     UpdatedAt: createdAt,
     CreatedAt: createdAt,
