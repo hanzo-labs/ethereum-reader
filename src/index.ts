@@ -127,36 +127,42 @@ async function main() {
 
         var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result)
 
+        await updateBloom(bloom, datastore, network)
+
         // Iterate through transactions looking for ones we care about
         for(var transaction of result.transactions) {
           console.log(`Processing Block Transaction ${ transaction.hash }`)
 
-          await updateBloom(bloom, datastore, network)
-
-          var address: string
-          var usage: string
-
           var toAddress   = transaction.to
           var fromAddress = transaction.from
 
-          console.log(`Checking Addresses\nTo: ${ toAddress }\nFrom: ${ fromAddress }`)
+          console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
 
           if (bloom.test(toAddress)) {
-            console.log(`Sender Address ${ toAddress }`)
-            address = toAddress
-            usage   = 'receiver'
-          } else if (bloom.test(fromAddress)) {
-            console.log(`Receiver Address ${ fromAddress }`)
-            address = fromAddress
-            usage   = 'sender'
-          } else {
-            console.log(`No Watched Addresses Detected`)
-            continue
+            console.log(`Receiver Address ${ toAddress }`)
+
+            // Do the actual query and fetch
+            savePendingBlockTransaction(
+              datastore,
+              transaction,
+              network,
+              toAddress,
+              'receiver',
+            )
           }
 
-          // Disabled to save calls
-          // Do the actual query and fetch
-          // savePendingBlockTransaction(datastore, transaction, network, address, usage)
+          if (bloom.test(fromAddress)) {
+            console.log(`Sender Address ${ fromAddress }`)
+
+            // Do the actual query and fetch
+            savePendingBlockTransaction(
+              datastore,
+              transaction,
+              network,
+              fromAddress,
+              'sender'
+            )
+          }
         }
 
         // Disabled to save calls

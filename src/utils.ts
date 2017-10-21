@@ -221,7 +221,7 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
     var createdAt = moment().format(rfc3339)
 
     // Convert to the Go Compatible Datastore Representation
-    var id  = `${ network }/${ transaction.hash }`
+    var id  = `${ network }/${address}/${ transaction.hash }`
     var data = {
       Id_: id,
 

@@ -188,7 +188,7 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
         }
         var createdAt = moment().format(rfc3339);
         // Convert to the Go Compatible Datastore Representation
-        var id = `${network}/${transaction.hash}`;
+        var id = `${network}/${address}/${transaction.hash}`;
         var data = {
             Id_: id,
             EthereumTransactionHash: transaction.hash,
@@ -369,8 +369,8 @@ function main() {
         // Start watching for new blocks
         var filter = web3.eth.filter({
             // 1892728
-            fromBlock: lastBlock,
-            toBlock: 'latest',
+            fromBlock: 1911870,
+            toBlock: 1912970,
         });
         var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1;
         filter.watch(function (error, result) {
@@ -397,32 +397,23 @@ function main() {
                                 return;
                             }
                             var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
+                            yield updateBloom(bloom, datastore, network);
                             // Iterate through transactions looking for ones we care about
                             for (var transaction of result.transactions) {
                                 console.log(`Processing Block Transaction ${transaction.hash}`);
-                                yield updateBloom(bloom, datastore, network);
-                                var address;
-                                var usage;
                                 var toAddress = transaction.to;
                                 var fromAddress = transaction.from;
-                                console.log(`Checking Addresses\nTo: ${toAddress}\nFrom: ${fromAddress}`);
+                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
                                 if (bloom.test(toAddress)) {
-                                    console.log(`Sender Address ${toAddress}`);
-                                    address = toAddress;
-                                    usage = 'receiver';
+                                    console.log(`Receiver Address ${toAddress}`);
+                                    // Do the actual query and fetch
+                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
                                 }
-                                else if (bloom.test(fromAddress)) {
-                                    console.log(`Receiver Address ${fromAddress}`);
-                                    address = fromAddress;
-                                    usage = 'sender';
+                                if (bloom.test(fromAddress)) {
+                                    console.log(`Sender Address ${fromAddress}`);
+                                    // Do the actual query and fetch
+                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
                                 }
-                                else {
-                                    console.log(`No Watched Addresses Detected`);
-                                    continue;
-                                }
-                                // Disabled to save calls
-                                // Do the actual query and fetch
-                                // savePendingBlockTransaction(datastore, transaction, network, address, usage)
                             }
                             // Disabled to save calls
                             // readingBlockPromise.then(()=>{
