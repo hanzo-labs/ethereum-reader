@@ -92,8 +92,8 @@ async function main() {
   // Start watching for new blocks
   var filter = web3.eth.filter({
     // 1892728
-    fromBlock: 1929040,
-    toBlock:   1929080, //1892800,
+    fromBlock: lastBlock,
+    toBlock:   'latest', //1892800,
   })
 
   var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1
