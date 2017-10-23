@@ -10,7 +10,7 @@ var moment  = require('moment-timezone')
 var rfc3339 = 'YYYY-MM-DDTHH:mm:ssZ'
 
 // Stores the last time block addresses were queries for in updateBloom
-var blockAddressQueriedAt = ''
+var blockAddressQueriedAt = null
 
 // Hanzo Ethereum Webhook
 var ethereumWebhook = 'https://api.hanzo.io/ethereum/webhook'
@@ -22,10 +22,11 @@ async function updateBloom(bloom, datastore, network) {
   var query = datastore.createQuery('blockaddress').filter('Type', '=', network)
 
   if (blockAddressQueriedAt) {
-    query.filter('CreatedAt', '>=', blockAddressQueriedAt)
+    query = query.filter('CreatedAt', '>=', blockAddressQueriedAt)
+    console.log(`Checking Addresses Created After '${ blockAddressQueriedAt }'`)
   }
 
-  console.log('Start Getting Block Addresses')
+  console.log(`Start Getting '${ network }' Block Addresses`)
 
   // Get all the results
   var [results, qInfo] = (await datastore.runQuery(query))
@@ -33,7 +34,7 @@ async function updateBloom(bloom, datastore, network) {
   console.log(`Found ${ results.length } Block Addresses`)
   console.log('Additional Query Info:\n', JSON.stringify(qInfo))
 
-  blockAddressQueriedAt = moment().format(rfc3339)
+  blockAddressQueriedAt = moment().toDate()
 
   // Start building the bloom filter from the results
   for (var result of results) {
@@ -60,7 +61,9 @@ function toDatastoreArray(array, type) {
 }
 
 function saveReadingBlock(datastore, network, result) {
-  var createdAt = moment().format(rfc3339)
+  var createdAt = {
+    timestampValue: moment().format(rfc3339),
+  }
 
   // Convert to the Go Compatible Datastore Representation
   var id  = `${ network }/${ result.number }`
@@ -127,7 +130,9 @@ function updatePendingBlock(datastore, data) {
 
   // Update the block status to pending
   data.Status    = 'pending'
-  data.UpdatedAt = moment().format(rfc3339)
+  data.UpdatedAt = {
+    timestampValue: moment().format(rfc3339),
+  }
 
   // Save the data to the key
   return datastore.save({
@@ -171,7 +176,9 @@ function getAndUpdateConfirmedBlock(datastore, network, number, confirmations) {
     }
 
     data.Confirmations = confirmations
-    data.UpdatedAt     = moment().format(rfc3339)
+    data.UpdatedAt = {
+      timestampValue: moment().format(rfc3339),
+    }
     data.Status        = 'confirmed'
 
     console.log(`Updating Pending Block #${ number } To Confirmed Status`)
@@ -218,7 +225,9 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
       return
     }
 
-    var createdAt = moment().format(rfc3339)
+    var createdAt = {
+      timestampValue: moment().format(rfc3339),
+    }
 
     // Convert to the Go Compatible Datastore Representation
     var id  = `${ network }/${address}/${ transaction.hash }`

@@ -127,9 +127,7 @@ async function main() {
 
         var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result)
 
-        console.log("WAT-2?")
         setTimeout(async function() {
-          console.log("WAT-1?")
           await updateBloom(bloom, datastore, network)
 
           // Iterate through transactions looking for ones we care about

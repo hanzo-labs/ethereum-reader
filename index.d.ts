@@ -1,7 +1,7 @@
 declare var axios: any;
 declare var moment: any;
 declare var rfc3339: string;
-declare var blockAddressQueriedAt: string;
+declare var blockAddressQueriedAt: any;
 declare var ethereumWebhook: string;
 declare var ethereumWebhookPassword: string;
 declare function updateBloom(bloom: any, datastore: any, network: any): Promise<void>;

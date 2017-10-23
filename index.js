@@ -14,7 +14,7 @@ var moment = require('moment-timezone');
 // RFC3339 Time format used by Appengine/Datastore
 var rfc3339 = 'YYYY-MM-DDTHH:mm:ssZ';
 // Stores the last time block addresses were queries for in updateBloom
-var blockAddressQueriedAt = '';
+var blockAddressQueriedAt = null;
 // Hanzo Ethereum Webhook
 var ethereumWebhook = 'https://api.hanzo.io/ethereum/webhook';
 var ethereumWebhookPassword = '3NRD2H3EbnrX4fFPBvHqUxsQjMMdVpbGXRn2jFggnq66bEEczjF3GK4r66JX3veY6WJUrxCSpB2AKsNRBHuDTHZkXBrY258tCpa4xMJPnyrCh5dZaPD5TvCC8BSHgEeMwkaN6Vgcme783fFBeS9eY88NpAgH84XbLL5W5AXahLa2ZSJy4VT8nkRVpSNPE32KGE4Jp3uhuHPUd7eKdYjrX9x8aukgQKtuyCNKdxhh4jw8ZzYZ2JUbgMmTtjduFswc';
@@ -24,14 +24,15 @@ function updateBloom(bloom, datastore, network) {
         // Query all the blockaddresses
         var query = datastore.createQuery('blockaddress').filter('Type', '=', network);
         if (blockAddressQueriedAt) {
-            query.filter('CreatedAt', '>=', blockAddressQueriedAt);
+            query = query.filter('CreatedAt', '>=', blockAddressQueriedAt);
+            console.log(`Checking Addresses Created After '${blockAddressQueriedAt}'`);
         }
-        console.log('Start Getting Block Addresses');
+        console.log(`Start Getting '${network}' Block Addresses`);
         // Get all the results
         var [results, qInfo] = (yield datastore.runQuery(query));
         console.log(`Found ${results.length} Block Addresses`);
         console.log('Additional Query Info:\n', JSON.stringify(qInfo));
-        blockAddressQueriedAt = moment().format(rfc3339);
+        blockAddressQueriedAt = moment().toDate();
         // Start building the bloom filter from the results
         for (var result of results) {
             console.log(`Adding BlockAddress ${result.Address} to Bloom Filter`);
@@ -54,7 +55,9 @@ function toDatastoreArray(array, type) {
     };
 }
 function saveReadingBlock(datastore, network, result) {
-    var createdAt = moment().format(rfc3339);
+    var createdAt = {
+        timestampValue: moment().format(rfc3339),
+    };
     // Convert to the Go Compatible Datastore Representation
     var id = `${network}/${result.number}`;
     var data = {
@@ -111,7 +114,9 @@ function updatePendingBlock(datastore, data) {
     console.log(`Updating Reading Block #'${data.Id_}' To Pending Status`);
     // Update the block status to pending
     data.Status = 'pending';
-    data.UpdatedAt = moment().format(rfc3339);
+    data.UpdatedAt = {
+        timestampValue: moment().format(rfc3339),
+    };
     // Save the data to the key
     return datastore.save({
         key: datastore.key(['block', data.Id_]),
@@ -147,7 +152,9 @@ function getAndUpdateConfirmedBlock(datastore, network, number, confirmations) {
             return;
         }
         data.Confirmations = confirmations;
-        data.UpdatedAt = moment().format(rfc3339);
+        data.UpdatedAt = {
+            timestampValue: moment().format(rfc3339),
+        };
         data.Status = 'confirmed';
         console.log(`Updating Pending Block #${number} To Confirmed Status`);
         // Save the data to the key
@@ -186,7 +193,9 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
             console.log(`Address ${address} Not Found:\n`, qInfo);
             return;
         }
-        var createdAt = moment().format(rfc3339);
+        var createdAt = {
+            timestampValue: moment().format(rfc3339),
+        };
         // Convert to the Go Compatible Datastore Representation
         var id = `${network}/${address}/${transaction.hash}`;
         var data = {
@@ -369,8 +378,8 @@ function main() {
         // Start watching for new blocks
         var filter = web3.eth.filter({
             // 1892728
-            fromBlock: 1929040,
-            toBlock: 1929080,
+            fromBlock: lastBlock,
+            toBlock: 'latest',
         });
         var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1;
         filter.watch(function (error, result) {
@@ -397,10 +406,8 @@ function main() {
                                 return;
                             }
                             var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
-                            console.log("WAT-2?");
                             setTimeout(function () {
                                 return __awaiter(this, void 0, void 0, function* () {
-                                    console.log("WAT-1?");
                                     yield updateBloom(bloom, datastore, network);
                                     // Iterate through transactions looking for ones we care about
                                     for (var transaction of result.transactions) {
