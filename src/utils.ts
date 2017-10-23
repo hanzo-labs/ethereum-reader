@@ -61,9 +61,7 @@ function toDatastoreArray(array, type) {
 }
 
 function saveReadingBlock(datastore, network, result) {
-  var createdAt = {
-    timestampValue: moment().format(rfc3339),
-  }
+  var createdAt = moment().toDate(),
 
   // Convert to the Go Compatible Datastore Representation
   var id  = `${ network }/${ result.number }`
@@ -130,9 +128,7 @@ function updatePendingBlock(datastore, data) {
 
   // Update the block status to pending
   data.Status    = 'pending'
-  data.UpdatedAt = {
-    timestampValue: moment().format(rfc3339),
-  }
+  data.UpdatedAt = moment().toDate()
 
   // Save the data to the key
   return datastore.save({
@@ -176,9 +172,7 @@ function getAndUpdateConfirmedBlock(datastore, network, number, confirmations) {
     }
 
     data.Confirmations = confirmations
-    data.UpdatedAt = {
-      timestampValue: moment().format(rfc3339),
-    }
+    data.UpdatedAt     = moment().toDate()
     data.Status        = 'confirmed'
 
     console.log(`Updating Pending Block #${ number } To Confirmed Status`)
@@ -225,9 +219,7 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
       return
     }
 
-    var createdAt = {
-      timestampValue: moment().format(rfc3339),
-    }
+    var createdAt = moment().toDate(),
 
     // Convert to the Go Compatible Datastore Representation
     var id  = `${ network }/${address}/${ transaction.hash }`
@@ -326,7 +318,7 @@ function getAndUpdateConfirmedBlockTransaction(web3, datastore, network, number,
           transaction.EthereumTransactionReceiptContractAddress   = receipt.contractAddress
 
           transaction.Confirmations = confirmations
-          transaction.UpdatedAt     = moment().format(rfc3339)
+          transaction.UpdatedAt     = moment().toDate()
           transaction.Status        = 'confirmed'
 
           console.log(`Updating Pending Block Transaction with Id '${ id }' To Confirmed Status`)

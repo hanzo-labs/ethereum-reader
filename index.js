@@ -55,9 +55,7 @@ function toDatastoreArray(array, type) {
     };
 }
 function saveReadingBlock(datastore, network, result) {
-    var createdAt = {
-        timestampValue: moment().format(rfc3339),
-    };
+    var createdAt = moment().toDate();
     // Convert to the Go Compatible Datastore Representation
     var id = `${network}/${result.number}`;
     var data = {
@@ -114,9 +112,7 @@ function updatePendingBlock(datastore, data) {
     console.log(`Updating Reading Block #'${data.Id_}' To Pending Status`);
     // Update the block status to pending
     data.Status = 'pending';
-    data.UpdatedAt = {
-        timestampValue: moment().format(rfc3339),
-    };
+    data.UpdatedAt = moment().toDate();
     // Save the data to the key
     return datastore.save({
         key: datastore.key(['block', data.Id_]),
@@ -152,9 +148,7 @@ function getAndUpdateConfirmedBlock(datastore, network, number, confirmations) {
             return;
         }
         data.Confirmations = confirmations;
-        data.UpdatedAt = {
-            timestampValue: moment().format(rfc3339),
-        };
+        data.UpdatedAt = moment().toDate();
         data.Status = 'confirmed';
         console.log(`Updating Pending Block #${number} To Confirmed Status`);
         // Save the data to the key
@@ -193,9 +187,7 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
             console.log(`Address ${address} Not Found:\n`, qInfo);
             return;
         }
-        var createdAt = {
-            timestampValue: moment().format(rfc3339),
-        };
+        var createdAt = moment().toDate();
         // Convert to the Go Compatible Datastore Representation
         var id = `${network}/${address}/${transaction.hash}`;
         var data = {
@@ -276,7 +268,7 @@ function getAndUpdateConfirmedBlockTransaction(web3, datastore, network, number,
                     transaction.EthereumTransactionReceiptGasUsed = receipt.gasUsed;
                     transaction.EthereumTransactionReceiptContractAddress = receipt.contractAddress;
                     transaction.Confirmations = confirmations;
-                    transaction.UpdatedAt = moment().format(rfc3339);
+                    transaction.UpdatedAt = moment().toDate();
                     transaction.Status = 'confirmed';
                     console.log(`Updating Pending Block Transaction with Id '${id}' To Confirmed Status`);
                     return resolve(datastore.save({
