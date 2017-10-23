@@ -274,8 +274,8 @@ function getAndUpdateConfirmedBlockTransaction(web3, datastore, network, number,
                         key: key,
                         data: transaction,
                     }).then((result) => {
-                        console.log(`Confirmed Block Transaction ${transaction.hash} Saved:\n`, JSON.stringify(result));
-                        console.log(`Issuing Confirmed Block Transaction ${transaction.hash} Webhook Event`);
+                        console.log(`Confirmed Block Transaction ${transaction.EthereumTransactionHash} Saved:\n`, JSON.stringify(result));
+                        console.log(`Issuing Confirmed Block Transaction ${transaction.EthereumTransactionHash} Webhook Event`);
                         return axios.post(ethereumWebhook, {
                             name: 'blocktransaction.confirmed',
                             type: network,
@@ -284,12 +284,12 @@ function getAndUpdateConfirmedBlockTransaction(web3, datastore, network, number,
                             dataKind: 'blocktransaction',
                             data: transaction,
                         }).then((result) => {
-                            console.log(`Successfully Issued Confirmed Block Transaction ${transaction.hash} Webhook Event`);
+                            console.log(`Successfully Issued Confirmed Block Transaction ${transaction.EthereumTransactionHash} Webhook Event`);
                         }).catch((error) => {
-                            console.log(`Error Issuing Confirmed Block Transaction ${transaction.hash} Webhook Event:\n`, error);
+                            console.log(`Error Issuing Confirmed Block Transaction ${transaction.EthereumTransactionHash} Webhook Event:\n`, error);
                         });
                     }).catch((error) => {
-                        console.log(`Error Updating Pending Block Transaction ${transaction.hash}:\n`, error);
+                        console.log(`Error Updating Pending Block Transaction ${transaction.EthereumTransactionHash}:\n`, error);
                     }));
                 });
             });
@@ -369,8 +369,8 @@ function main() {
         // Start watching for new blocks
         var filter = web3.eth.filter({
             // 1892728
-            fromBlock: 1911870,
-            toBlock: 1912970,
+            fromBlock: 1929040,
+            toBlock: 1929080,
         });
         var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1;
         filter.watch(function (error, result) {
@@ -397,24 +397,30 @@ function main() {
                                 return;
                             }
                             var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
-                            yield updateBloom(bloom, datastore, network);
-                            // Iterate through transactions looking for ones we care about
-                            for (var transaction of result.transactions) {
-                                console.log(`Processing Block Transaction ${transaction.hash}`);
-                                var toAddress = transaction.to;
-                                var fromAddress = transaction.from;
-                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
-                                if (bloom.test(toAddress)) {
-                                    console.log(`Receiver Address ${toAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
-                                }
-                                if (bloom.test(fromAddress)) {
-                                    console.log(`Sender Address ${fromAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
-                                }
-                            }
+                            console.log("WAT-2?");
+                            setTimeout(function () {
+                                return __awaiter(this, void 0, void 0, function* () {
+                                    console.log("WAT-1?");
+                                    yield updateBloom(bloom, datastore, network);
+                                    // Iterate through transactions looking for ones we care about
+                                    for (var transaction of result.transactions) {
+                                        console.log(`Processing Block Transaction ${transaction.hash}`);
+                                        var toAddress = transaction.to;
+                                        var fromAddress = transaction.from;
+                                        console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
+                                        if (bloom.test(toAddress)) {
+                                            console.log(`Receiver Address ${toAddress}`);
+                                            // Do the actual query and fetch
+                                            savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
+                                        }
+                                        if (bloom.test(fromAddress)) {
+                                            console.log(`Sender Address ${fromAddress}`);
+                                            // Do the actual query and fetch
+                                            savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
+                                        }
+                                    }
+                                });
+                            }, 10000);
                             // Disabled to save calls
                             // readingBlockPromise.then(()=>{
                             //   return updatePendingBlock(datastore, data)
@@ -436,11 +442,17 @@ function main() {
                             //     ),
                             //   ])
                             // })
-                            // It is cheaper on calls to just update the blocktransactions instead
-                            readingBlockPromise.then(() => {
-                                var confirmationBlock = result.number - confirmations;
-                                return getAndUpdateConfirmedBlockTransaction(web3, datastore, network, confirmationBlock, confirmations);
-                            });
+                            ((result) => {
+                                readingBlockPromise.then(() => {
+                                    return new Promise((resolve, reject) => {
+                                        setTimeout(function () {
+                                            // It is cheaper on calls to just update the blocktransactions instead
+                                            var confirmationBlock = result.number - confirmations;
+                                            resolve(getAndUpdateConfirmedBlockTransaction(web3, datastore, network, confirmationBlock, confirmations));
+                                        }, 12000);
+                                    });
+                                });
+                            })(result);
                         });
                     });
                 }

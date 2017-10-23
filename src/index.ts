@@ -92,8 +92,8 @@ async function main() {
   // Start watching for new blocks
   var filter = web3.eth.filter({
     // 1892728
-    fromBlock: lastBlock,
-    toBlock:   'latest', //1892800,
+    fromBlock: 1929040,
+    toBlock:   1929080, //1892800,
   })
 
   var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1
@@ -127,43 +127,47 @@ async function main() {
 
         var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result)
 
-        await updateBloom(bloom, datastore, network)
+        console.log("WAT-2?")
+        setTimeout(async function() {
+          console.log("WAT-1?")
+          await updateBloom(bloom, datastore, network)
 
-        // Iterate through transactions looking for ones we care about
-        for(var transaction of result.transactions) {
-          console.log(`Processing Block Transaction ${ transaction.hash }`)
+          // Iterate through transactions looking for ones we care about
+          for(var transaction of result.transactions) {
+            console.log(`Processing Block Transaction ${ transaction.hash }`)
 
-          var toAddress   = transaction.to
-          var fromAddress = transaction.from
+            var toAddress   = transaction.to
+            var fromAddress = transaction.from
 
-          console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
+            console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
 
-          if (bloom.test(toAddress)) {
-            console.log(`Receiver Address ${ toAddress }`)
+            if (bloom.test(toAddress)) {
+              console.log(`Receiver Address ${ toAddress }`)
 
-            // Do the actual query and fetch
-            savePendingBlockTransaction(
-              datastore,
-              transaction,
-              network,
-              toAddress,
-              'receiver',
-            )
+              // Do the actual query and fetch
+              savePendingBlockTransaction(
+                datastore,
+                transaction,
+                network,
+                toAddress,
+                'receiver',
+              )
+            }
+
+            if (bloom.test(fromAddress)) {
+              console.log(`Sender Address ${ fromAddress }`)
+
+              // Do the actual query and fetch
+              savePendingBlockTransaction(
+                datastore,
+                transaction,
+                network,
+                fromAddress,
+                'sender'
+              )
+            }
           }
-
-          if (bloom.test(fromAddress)) {
-            console.log(`Sender Address ${ fromAddress }`)
-
-            // Do the actual query and fetch
-            savePendingBlockTransaction(
-              datastore,
-              transaction,
-              network,
-              fromAddress,
-              'sender'
-            )
-          }
-        }
+        }, 10000);
 
         // Disabled to save calls
         // readingBlockPromise.then(()=>{
@@ -187,16 +191,22 @@ async function main() {
         //   ])
         // })
 
-        // It is cheaper on calls to just update the blocktransactions instead
-        readingBlockPromise.then(() => {
-          var confirmationBlock = result.number - confirmations
-          return getAndUpdateConfirmedBlockTransaction(
-            web3,
-            datastore,
-            network,
-            confirmationBlock,
-            confirmations)
-        })
+        ((result) => {
+          readingBlockPromise.then(() => {
+            return new Promise((resolve, reject) => {
+              setTimeout(function() {
+                // It is cheaper on calls to just update the blocktransactions instead
+                var confirmationBlock = result.number - confirmations
+                resolve(getAndUpdateConfirmedBlockTransaction(
+                  web3,
+                  datastore,
+                  network,
+                  confirmationBlock,
+                  confirmations))
+              }, 12000)
+            })
+          })
+        })(result)
       })
     }
 

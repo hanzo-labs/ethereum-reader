@@ -326,9 +326,9 @@ function getAndUpdateConfirmedBlockTransaction(web3, datastore, network, number,
             key:  key,
             data: transaction,
           }).then((result)=> {
-            console.log(`Confirmed Block Transaction ${ transaction.hash } Saved:\n`, JSON.stringify(result))
+            console.log(`Confirmed Block Transaction ${ transaction.EthereumTransactionHash } Saved:\n`, JSON.stringify(result))
 
-            console.log(`Issuing Confirmed Block Transaction ${ transaction.hash } Webhook Event`)
+            console.log(`Issuing Confirmed Block Transaction ${ transaction.EthereumTransactionHash } Webhook Event`)
             return axios.post(ethereumWebhook, {
               name:     'blocktransaction.confirmed',
               type:     network,
@@ -338,12 +338,12 @@ function getAndUpdateConfirmedBlockTransaction(web3, datastore, network, number,
               dataKind: 'blocktransaction',
               data:     transaction,
             }).then((result) => {
-              console.log(`Successfully Issued Confirmed Block Transaction ${ transaction.hash } Webhook Event`)
+              console.log(`Successfully Issued Confirmed Block Transaction ${ transaction.EthereumTransactionHash } Webhook Event`)
             }).catch((error) => {
-              console.log(`Error Issuing Confirmed Block Transaction ${ transaction.hash } Webhook Event:\n`, error)
+              console.log(`Error Issuing Confirmed Block Transaction ${ transaction.EthereumTransactionHash } Webhook Event:\n`, error)
             })
           }).catch((error) =>{
-            console.log(`Error Updating Pending Block Transaction ${ transaction.hash }:\n`, error)
+            console.log(`Error Updating Pending Block Transaction ${ transaction.EthereumTransactionHash }:\n`, error)
           }))
         })
       })
