@@ -61,7 +61,7 @@ function toDatastoreArray(array, type) {
 }
 
 function saveReadingBlock(datastore, network, result) {
-  var createdAt = moment().toDate(),
+  var createdAt = moment().toDate()
 
   // Convert to the Go Compatible Datastore Representation
   var id  = `${ network }/${ result.number }`
@@ -219,7 +219,7 @@ function savePendingBlockTransaction(datastore, transaction, network, address, u
       return
     }
 
-    var createdAt = moment().toDate(),
+    var createdAt = moment().toDate()
 
     // Convert to the Go Compatible Datastore Representation
     var id  = `${ network }/${address}/${ transaction.hash }`

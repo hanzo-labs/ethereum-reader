@@ -307,6 +307,8 @@ var { BloomFilter } = require('bloomfilter');
 var Datastore = require('@google-cloud/datastore');
 // How many confirmations does it take to confirm? (default: 12)
 var confirmations = process.env.CONFIRMATIONS || 12;
+// How many concurrent blocks can it be processing? (default: 10)
+var inflightLimit = process.env.INFLIGHT_LIMIT || 10;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         // Initialize the Bloomfilter for a 1*10^-6 error rate for 1 million entries)
@@ -367,6 +369,7 @@ function main() {
         }
         console.log('Additional Query Info:\n', JSON.stringify(qInfo));
         console.log('Start Watching For New Blocks');
+        lastBlock = 1962800;
         // Start watching for new blocks
         var filter = web3.eth.filter({
             // 1892728
@@ -374,6 +377,85 @@ function main() {
             toBlock: 'latest',
         });
         var lastNumber = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1;
+        var currentNumber = lastNumber;
+        var blockNumber = lastNumber;
+        var inflight = 0;
+        function run() {
+            // Ignore if inflight limit reached or blocknumber reached
+            if (inflight > inflightLimit || currentNumber >= blockNumber) {
+                return;
+            }
+            console.log(`${inflight} Inflight Requests\nTarget Block #${blockNumber}\nCurrent Block #${currentNumber}`);
+            inflight++;
+            currentNumber++;
+            var number = currentNumber;
+            console.log(`Fetching New Block #${number}`);
+            web3.eth.getBlock(number, true, function (error, result) {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (error) {
+                        console.log(`Error Fetching Block #${number}:\n`, error);
+                        return;
+                    }
+                    var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
+                    setTimeout(function () {
+                        return __awaiter(this, void 0, void 0, function* () {
+                            yield updateBloom(bloom, datastore, network);
+                            // Iterate through transactions looking for ones we care about
+                            for (var transaction of result.transactions) {
+                                console.log(`Processing Block Transaction ${transaction.hash}`);
+                                var toAddress = transaction.to;
+                                var fromAddress = transaction.from;
+                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
+                                if (bloom.test(toAddress)) {
+                                    console.log(`Receiver Address ${toAddress}`);
+                                    // Do the actual query and fetch
+                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
+                                }
+                                if (bloom.test(fromAddress)) {
+                                    console.log(`Sender Address ${fromAddress}`);
+                                    // Do the actual query and fetch
+                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
+                                }
+                            }
+                        });
+                    }, 10000);
+                    // Disabled to save calls
+                    // readingBlockPromise.then(()=>{
+                    //   return updatePendingBlock(datastore, data)
+                    // }).then(()=> {
+                    //   var confirmationBlock = result.number - confirmations
+                    //   return Promise.all([
+                    //     // getAndUpdateConfirmedBlock(
+                    //     //   datastore,
+                    //     //   network,
+                    //     //   confirmationBlock,
+                    //     //   confirmations
+                    //     // ),
+                    //     getAndUpdateConfirmedBlockTransaction(
+                    //       web3,
+                    //       datastore,
+                    //       network,
+                    //       confirmationBlock,
+                    //       confirmations
+                    //     ),
+                    //   ])
+                    // })
+                    ((result) => {
+                        readingBlockPromise.then(() => {
+                            return new Promise((resolve, reject) => {
+                                setTimeout(function () {
+                                    // It is cheaper on calls to just update the blocktransactions instead
+                                    var confirmationBlock = result.number - confirmations;
+                                    resolve(getAndUpdateConfirmedBlockTransaction(web3, datastore, network, confirmationBlock, confirmations));
+                                    inflight--;
+                                }, 12000);
+                            });
+                        });
+                    })(result);
+                });
+            });
+        }
+        setInterval(run, 1);
         filter.watch(function (error, result) {
             return __awaiter(this, void 0, void 0, function* () {
                 if (error) {
@@ -381,81 +463,7 @@ function main() {
                     return;
                 }
                 // Get currentBlockNumber
-                var blockNumber = result.blockNumber;
-                // Cache the blockNumber
-                if (lastNumber == blockNumber) {
-                    return;
-                }
-                console.log(`Fetching Blocks #${lastNumber + 1}-#${blockNumber}`);
-                // Get all the sequential blocks because for some reason replay doesn't
-                // return sequential blocks...
-                for (var number = lastNumber + 1; number <= blockNumber; number++) {
-                    console.log(`Fetching New Block #${number}`);
-                    web3.eth.getBlock(number, true, function (error, result) {
-                        return __awaiter(this, void 0, void 0, function* () {
-                            if (error) {
-                                console.log(`Error Fetching Block #${number}:\n`, error);
-                                return;
-                            }
-                            var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
-                            setTimeout(function () {
-                                return __awaiter(this, void 0, void 0, function* () {
-                                    yield updateBloom(bloom, datastore, network);
-                                    // Iterate through transactions looking for ones we care about
-                                    for (var transaction of result.transactions) {
-                                        console.log(`Processing Block Transaction ${transaction.hash}`);
-                                        var toAddress = transaction.to;
-                                        var fromAddress = transaction.from;
-                                        console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
-                                        if (bloom.test(toAddress)) {
-                                            console.log(`Receiver Address ${toAddress}`);
-                                            // Do the actual query and fetch
-                                            savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
-                                        }
-                                        if (bloom.test(fromAddress)) {
-                                            console.log(`Sender Address ${fromAddress}`);
-                                            // Do the actual query and fetch
-                                            savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
-                                        }
-                                    }
-                                });
-                            }, 10000);
-                            // Disabled to save calls
-                            // readingBlockPromise.then(()=>{
-                            //   return updatePendingBlock(datastore, data)
-                            // }).then(()=> {
-                            //   var confirmationBlock = result.number - confirmations
-                            //   return Promise.all([
-                            //     // getAndUpdateConfirmedBlock(
-                            //     //   datastore,
-                            //     //   network,
-                            //     //   confirmationBlock,
-                            //     //   confirmations
-                            //     // ),
-                            //     getAndUpdateConfirmedBlockTransaction(
-                            //       web3,
-                            //       datastore,
-                            //       network,
-                            //       confirmationBlock,
-                            //       confirmations
-                            //     ),
-                            //   ])
-                            // })
-                            ((result) => {
-                                readingBlockPromise.then(() => {
-                                    return new Promise((resolve, reject) => {
-                                        setTimeout(function () {
-                                            // It is cheaper on calls to just update the blocktransactions instead
-                                            var confirmationBlock = result.number - confirmations;
-                                            resolve(getAndUpdateConfirmedBlockTransaction(web3, datastore, network, confirmationBlock, confirmations));
-                                        }, 12000);
-                                    });
-                                });
-                            })(result);
-                        });
-                    });
-                }
-                lastNumber = blockNumber;
+                blockNumber = result.blockNumber;
             });
         });
     });

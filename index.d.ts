@@ -16,4 +16,5 @@ declare function getAndUpdateConfirmedBlockTransaction(web3: any, datastore: any
 declare var BloomFilter: any;
 declare var Datastore: any;
 declare var confirmations: string | number;
+declare var inflightLimit: string | number;
 declare function main(): Promise<void>;

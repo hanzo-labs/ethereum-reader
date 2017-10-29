@@ -23,16 +23,16 @@
     "@google-cloud/datastore": "1.1.0",
     "axios": "0.16.2",
     "bloomfilter": "0.0.16",
-    "moment-timezone": "0.5.13",
-    "sake-cli": "0.5.22",
-    "web3": "0.19.0",
     "fs": "0.0.1-security",
+    "moment-timezone": "0.5.13",
     "os": "0.1.1",
     "sake-bundle": "0.6.1",
+    "sake-cli": "0.5.22",
     "sake-core": "1.5.1",
     "sake-outdated": "0.1.28",
     "sake-version": "0.1.19",
     "tar": "4.0.1",
-    "typescript": "2.5.3"
+    "typescript": "2.5.3",
+    "web3": "0.19.0"
   }
 }
