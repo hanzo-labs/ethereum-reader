@@ -5,3 +5,4 @@ lib/
 .ethereum/
 geth*.tar.gz
 .node*
+package-lock.json

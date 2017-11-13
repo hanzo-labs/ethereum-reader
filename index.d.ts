@@ -15,6 +15,6 @@ declare function savePendingBlockTransaction(datastore: any, transaction: any, n
 declare function getAndUpdateConfirmedBlockTransaction(web3: any, datastore: any, network: any, number: any, confirmations: any): any;
 declare var BloomFilter: any;
 declare var Datastore: any;
-declare var confirmations: string | number;
-declare var inflightLimit: string | number;
+declare var confirmations: any;
+declare var inflightLimit: any;
 declare function main(): Promise<void>;

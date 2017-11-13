@@ -323,7 +323,7 @@ function main() {
         // Determine ethereum network
         var network = (process.env.ENVIRONMENT == 'production') ? 'ethereum' : 'ethereum-ropsten';
         // Determine geth/parity node URI
-        var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.202.166.74:80' : 'http://35.192.74.139:80';
+        var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.193.184.247:80' : 'http://35.192.74.139:80';
         console.log(`Starting Reader For '${network}' Using Node '${nodeURI}'`);
         console.log('Initializing Bloom Filter');
         yield updateBloom(bloom, datastore, network);
@@ -369,7 +369,7 @@ function main() {
         }
         console.log('Additional Query Info:\n', JSON.stringify(qInfo));
         console.log('Start Watching For New Blocks');
-        lastBlock = 1962800;
+        // lastBlock = 1962800
         // Start watching for new blocks
         var filter = web3.eth.filter({
             // 1892728
@@ -385,7 +385,7 @@ function main() {
             if (inflight > inflightLimit || currentNumber >= blockNumber) {
                 return;
             }
-            console.log(`${inflight} Inflight Requests\nTarget Block #${blockNumber}\nCurrent Block #${currentNumber}`);
+            console.log(`\nInflight Requests: ${inflight}\nCurrent Block  #${currentNumber}\nTarget Block #${blockNumber}\n`);
             inflight++;
             currentNumber++;
             var number = currentNumber;

@@ -29,7 +29,7 @@ async function main() {
   var network = (process.env.ENVIRONMENT == 'production') ? 'ethereum' : 'ethereum-ropsten'
 
   // Determine geth/parity node URI
-  var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.202.166.74:80' : 'http://35.192.74.139:80'
+  var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.193.184.247:80' : 'http://35.192.74.139:80'
 
   console.log(`Starting Reader For '${ network }' Using Node '${ nodeURI }'`)
 
