@@ -130,54 +130,57 @@ async function main() {
       }
 
       // Parity skipped?
+      skip = false
+
       if (!result) {
-        console.log(`Block # ${number} returned null?  Parity issue?`)
-        return
+        console.log(`Block #${number} returned null?  Parity issue?`)
+        skip = true
       }
 
-      console.log(`Fetched Block`, error, result)
+      if !skip
+        console.log(`Fetched Block #${ result.number }`)
 
-      var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result)
+        var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result)
 
-      setTimeout(async function() {
-        await updateBloom(bloom, datastore, network)
+        setTimeout(async function() {
+          await updateBloom(bloom, datastore, network)
 
-        // Iterate through transactions looking for ones we care about
-        for(var transaction of result.transactions) {
-          console.log(`Processing Block Transaction ${ transaction.hash }`)
+          // Iterate through transactions looking for ones we care about
+          for(var transaction of result.transactions) {
+            console.log(`Processing Block Transaction ${ transaction.hash }`)
 
-          var toAddress   = transaction.to
-          var fromAddress = transaction.from
+            var toAddress   = transaction.to
+            var fromAddress = transaction.from
 
-          console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
+            console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
 
-          if (bloom.test(toAddress)) {
-            console.log(`Receiver Address ${ toAddress }`)
+            if (bloom.test(toAddress)) {
+              console.log(`Receiver Address ${ toAddress }`)
 
-            // Do the actual query and fetch
-            savePendingBlockTransaction(
-              datastore,
-              transaction,
-              network,
-              toAddress,
-              'receiver',
-            )
+              // Do the actual query and fetch
+              savePendingBlockTransaction(
+                datastore,
+                transaction,
+                network,
+                toAddress,
+                'receiver',
+              )
+            }
+
+            if (bloom.test(fromAddress)) {
+              console.log(`Sender Address ${ fromAddress }`)
+
+              // Do the actual query and fetch
+              savePendingBlockTransaction(
+                datastore,
+                transaction,
+                network,
+                fromAddress,
+                'sender'
+              )
+            }
           }
-
-          if (bloom.test(fromAddress)) {
-            console.log(`Sender Address ${ fromAddress }`)
-
-            // Do the actual query and fetch
-            savePendingBlockTransaction(
-              datastore,
-              transaction,
-              network,
-              fromAddress,
-              'sender'
-            )
-          }
-        }
-      }, 10000);
+        }, 10000);
 
       // Disabled to save calls
       // readingBlockPromise.then(()=>{
