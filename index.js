@@ -323,23 +323,26 @@ function main() {
         // Determine ethereum network
         var network = (process.env.ENVIRONMENT == 'production') ? 'ethereum' : 'ethereum-ropsten';
         // Determine geth/parity node URI
-        var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.193.184.247:80' : 'http://35.192.74.139:80';
-        console.log(`Starting Reader For '${network}' Using Node '${nodeURI}'`);
-        console.log('Initializing Bloom Filter');
-        yield updateBloom(bloom, datastore, network);
+        // GETH PROD: 'http://35.193.184.247:80'
+        // PARITY PROD: 'http://35.192.92.62:13264'
+        var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.192.92.62:13264' : 'http://35.192.74.139:80';
         // Import Web3
         var Web3 = require('web3');
         console.log('Connecting to', nodeURI);
-        var web3 = new Web3(new Web3.providers.HttpProvider(nodeURI, 10000));
+        var web3 = new Web3(new Web3.providers.HttpProvider(nodeURI, 1000000));
         // Ensure a connection was actually established
         if (!web3.isConnected()) {
             console.log('Could Not Connected');
             console.log(`Are you running 'sudo geth --cache=1024 --rpc --rpcaddr 0.0.0.0 --rpcport 80 --syncmode=fast --rpccorsdomain "*" in your geth node?'`);
             return;
         }
-        console.log('Connected');
         // Report current full block
         console.log('Current FullBlock Is', web3.eth.blockNumber);
+        // Load addresses into bloom filter
+        console.log(`Starting Reader For '${network}' Using Node '${nodeURI}'`);
+        console.log('Initializing Bloom Filter');
+        yield updateBloom(bloom, datastore, network);
+        console.log('Connected');
         // Report Syncing Status
         var lastBlockData = {};
         web3.eth.isSyncing((isSynced, blockData) => {
@@ -391,80 +394,83 @@ function main() {
             var number = currentNumber;
             console.log(`Fetching New Block #${number}`);
             web3.eth.getBlock(number, true, function (error, result) {
-                return __awaiter(this, void 0, void 0, function* () {
-                    if (error) {
-                        console.log(`Error Fetching Block #${number}:\n`, error);
-                        return;
-                    }
-                    var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
-                    setTimeout(function () {
-                        return __awaiter(this, void 0, void 0, function* () {
-                            yield updateBloom(bloom, datastore, network);
-                            // Iterate through transactions looking for ones we care about
-                            for (var transaction of result.transactions) {
-                                console.log(`Processing Block Transaction ${transaction.hash}`);
-                                var toAddress = transaction.to;
-                                var fromAddress = transaction.from;
-                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
-                                if (bloom.test(toAddress)) {
-                                    console.log(`Receiver Address ${toAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
-                                }
-                                if (bloom.test(fromAddress)) {
-                                    console.log(`Sender Address ${fromAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
-                                }
+                if (error) {
+                    console.log(`Error Fetching Block #${number}:\n`, error);
+                    return;
+                }
+                // Parity skipped?
+                if (!result) {
+                    console.log(`Block # ${number} returned null?  Parity issue?`);
+                    return;
+                }
+                console.log(`Fetched Block`, error, result);
+                var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
+                setTimeout(function () {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        yield updateBloom(bloom, datastore, network);
+                        // Iterate through transactions looking for ones we care about
+                        for (var transaction of result.transactions) {
+                            console.log(`Processing Block Transaction ${transaction.hash}`);
+                            var toAddress = transaction.to;
+                            var fromAddress = transaction.from;
+                            console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
+                            if (bloom.test(toAddress)) {
+                                console.log(`Receiver Address ${toAddress}`);
+                                // Do the actual query and fetch
+                                savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
                             }
+                            if (bloom.test(fromAddress)) {
+                                console.log(`Sender Address ${fromAddress}`);
+                                // Do the actual query and fetch
+                                savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
+                            }
+                        }
+                    });
+                }, 10000);
+                // Disabled to save calls
+                // readingBlockPromise.then(()=>{
+                //   return updatePendingBlock(datastore, data)
+                // }).then(()=> {
+                //   var confirmationBlock = result.number - confirmations
+                //   return Promise.all([
+                //     // getAndUpdateConfirmedBlock(
+                //     //   datastore,
+                //     //   network,
+                //     //   confirmationBlock,
+                //     //   confirmations
+                //     // ),
+                //     getAndUpdateConfirmedBlockTransaction(
+                //       web3,
+                //       datastore,
+                //       network,
+                //       confirmationBlock,
+                //       confirmations
+                //     ),
+                //   ])
+                // })
+                ((result) => {
+                    readingBlockPromise.then(() => {
+                        return new Promise((resolve, reject) => {
+                            setTimeout(function () {
+                                // It is cheaper on calls to just update the blocktransactions instead
+                                var confirmationBlock = result.number - confirmations;
+                                resolve(getAndUpdateConfirmedBlockTransaction(web3, datastore, network, confirmationBlock, confirmations));
+                                inflight--;
+                            }, 12000);
                         });
-                    }, 10000);
-                    // Disabled to save calls
-                    // readingBlockPromise.then(()=>{
-                    //   return updatePendingBlock(datastore, data)
-                    // }).then(()=> {
-                    //   var confirmationBlock = result.number - confirmations
-                    //   return Promise.all([
-                    //     // getAndUpdateConfirmedBlock(
-                    //     //   datastore,
-                    //     //   network,
-                    //     //   confirmationBlock,
-                    //     //   confirmations
-                    //     // ),
-                    //     getAndUpdateConfirmedBlockTransaction(
-                    //       web3,
-                    //       datastore,
-                    //       network,
-                    //       confirmationBlock,
-                    //       confirmations
-                    //     ),
-                    //   ])
-                    // })
-                    ((result) => {
-                        readingBlockPromise.then(() => {
-                            return new Promise((resolve, reject) => {
-                                setTimeout(function () {
-                                    // It is cheaper on calls to just update the blocktransactions instead
-                                    var confirmationBlock = result.number - confirmations;
-                                    resolve(getAndUpdateConfirmedBlockTransaction(web3, datastore, network, confirmationBlock, confirmations));
-                                    inflight--;
-                                }, 12000);
-                            });
-                        });
-                    })(result);
-                });
+                    });
+                })(result);
             });
         }
         setInterval(run, 1);
         filter.watch(function (error, result) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (error) {
-                    console.log('Error While Watching Blocks:\n', error);
-                    return;
-                }
-                // Get currentBlockNumber
-                blockNumber = result.blockNumber;
-            });
+            if (error) {
+                console.log('Error While Watching Blocks:\n', error);
+                return;
+            }
+            // console.log('Notified of new block', result.blockNumber)
+            // Get currentBlockNumber
+            blockNumber = result.blockNumber;
         });
     });
 }

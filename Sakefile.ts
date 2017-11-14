@@ -10,10 +10,6 @@ task('start', ['build'], function* (opts) {
   require('./index.js')
 })
 
-task('start', ['build'], function* (opts) {
-  require('./index.js')
-})
-
 task('auth', 'authenticate google sdk', (opts) => {
   exec('gcloud auth login')
 })
