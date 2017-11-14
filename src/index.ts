@@ -130,14 +130,14 @@ async function main() {
       }
 
       // Parity skipped?
-      skip = false
+      var skip = false
 
       if (!result) {
         console.log(`Block #${number} returned null?  Parity issue?`)
         skip = true
       }
 
-      if !skip
+      if (!skip) {
         console.log(`Fetched Block #${ result.number }`)
 
         var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result)
@@ -180,7 +180,8 @@ async function main() {
               )
             }
           }
-        }, 10000);
+        }, 10000)
+      };
 
       // Disabled to save calls
       // readingBlockPromise.then(()=>{
