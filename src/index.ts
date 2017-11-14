@@ -9,8 +9,8 @@ var Datastore = require('@google-cloud/datastore')
 // How many confirmations does it take to confirm? (default: 12)
 var confirmations = process.env.CONFIRMATIONS || 12
 
-// How many concurrent blocks can it be processing? (default: 10)
-var inflightLimit = process.env.INFLIGHT_LIMIT || 10
+// How many concurrent blocks can it be processing? (default: 20)
+var inflightLimit = process.env.INFLIGHT_LIMIT || 20
 
 async function main() {
   // Initialize the Bloomfilter for a 1*10^-6 error rate for 1 million entries)
@@ -131,7 +131,7 @@ async function main() {
 
       // Parity skipped?
       if (!result) {
-        console.log(`Block #${number} returned null?  Parity issue?`)
+        console.log(`Block #${number} returned null, Ancient Block/Parity Issue?`)
         inflight--
         return
       }

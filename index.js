@@ -307,8 +307,8 @@ var { BloomFilter } = require('bloomfilter');
 var Datastore = require('@google-cloud/datastore');
 // How many confirmations does it take to confirm? (default: 12)
 var confirmations = process.env.CONFIRMATIONS || 12;
-// How many concurrent blocks can it be processing? (default: 10)
-var inflightLimit = process.env.INFLIGHT_LIMIT || 10;
+// How many concurrent blocks can it be processing? (default: 20)
+var inflightLimit = process.env.INFLIGHT_LIMIT || 20;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         // Initialize the Bloomfilter for a 1*10^-6 error rate for 1 million entries)
@@ -399,38 +399,35 @@ function main() {
                     return;
                 }
                 // Parity skipped?
-                var skip = false;
                 if (!result) {
-                    console.log(`Block #${number} returned null?  Parity issue?`);
-                    skip = true;
+                    console.log(`Block #${number} returned null, Ancient Block/Parity Issue?`);
+                    inflight--;
+                    return;
                 }
-                if (!skip) {
-                    console.log(`Fetched Block #${result.number}`);
-                    var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
-                    setTimeout(function () {
-                        return __awaiter(this, void 0, void 0, function* () {
-                            yield updateBloom(bloom, datastore, network);
-                            // Iterate through transactions looking for ones we care about
-                            for (var transaction of result.transactions) {
-                                console.log(`Processing Block Transaction ${transaction.hash}`);
-                                var toAddress = transaction.to;
-                                var fromAddress = transaction.from;
-                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
-                                if (bloom.test(toAddress)) {
-                                    console.log(`Receiver Address ${toAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
-                                }
-                                if (bloom.test(fromAddress)) {
-                                    console.log(`Sender Address ${fromAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
-                                }
+                console.log(`Fetched Block #${result.number}`);
+                var [_, data, readingBlockPromise] = saveReadingBlock(datastore, network, result);
+                setTimeout(function () {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        yield updateBloom(bloom, datastore, network);
+                        // Iterate through transactions looking for ones we care about
+                        for (var transaction of result.transactions) {
+                            console.log(`Processing Block Transaction ${transaction.hash}`);
+                            var toAddress = transaction.to;
+                            var fromAddress = transaction.from;
+                            console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
+                            if (bloom.test(toAddress)) {
+                                console.log(`Receiver Address ${toAddress}`);
+                                // Do the actual query and fetch
+                                savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
                             }
-                        });
-                    }, 10000);
-                }
-                ;
+                            if (bloom.test(fromAddress)) {
+                                console.log(`Sender Address ${fromAddress}`);
+                                // Do the actual query and fetch
+                                savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
+                            }
+                        }
+                    });
+                }, 10000);
                 // Disabled to save calls
                 // readingBlockPromise.then(()=>{
                 //   return updatePendingBlock(datastore, data)
