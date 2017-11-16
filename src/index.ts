@@ -123,7 +123,7 @@ async function main() {
 
     console.log(`Fetching New Block #${ number }`)
 
-    web3.eth.getBlock(number, (error, result) => {
+    web3.eth.getBlock(number, true, (error, result) => {
       if (error) {
         console.log(`Error Fetching Block #${ number }:\n`, error)
         return
@@ -144,47 +144,50 @@ async function main() {
         await updateBloom(bloom, datastore, network)
 
         // Iterate through transactions looking for ones we care about
-        for(var transactionId of result.transactions) {
-          console.log(`Fetching New Block Transaction #${ transactionId }:\n`, error)
-          web3.eth.getTransaction(transactionId, (error, transaction) => {
-            if (error) {
-              console.log(`Error Fetching Block Transaction #${ transaction.hash }:\n`, error)
-              return
-            }
+        for(var transaction of result.transactions) {
 
-            console.log(`Processing Block Transaction ${ transaction.hash }`)
+        // Manually fetch
+        // for(var transactionId of result.transactions) {
+        //   console.log(`Fetching New Block Transaction #${ transactionId }:\n`, error)
+        //   web3.eth.getTransaction(transactionId, (error, transaction) => {
+          if (error) {
+            console.log(`Error Fetching Block Transaction #${ transaction.hash }:\n`, error)
+            return
+          }
 
-            var toAddress   = transaction.to
-            var fromAddress = transaction.from
+          console.log(`Processing Block Transaction ${ transaction.hash }`)
 
-            console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
+          var toAddress   = transaction.to
+          var fromAddress = transaction.from
 
-            if (bloom.test(toAddress)) {
-              console.log(`Receiver Address ${ toAddress }`)
+          console.log(`Checking Addresses\nTo:  ${ toAddress }\nFrom: ${ fromAddress }`)
 
-              // Do the actual query and fetch
-              savePendingBlockTransaction(
-                datastore,
-                transaction,
-                network,
-                toAddress,
-                'receiver',
-              )
-            }
+          if (bloom.test(toAddress)) {
+            console.log(`Receiver Address ${ toAddress }`)
 
-            if (bloom.test(fromAddress)) {
-              console.log(`Sender Address ${ fromAddress }`)
+            // Do the actual query and fetch
+            savePendingBlockTransaction(
+              datastore,
+              transaction,
+              network,
+              toAddress,
+              'receiver',
+            )
+          }
 
-              // Do the actual query and fetch
-              savePendingBlockTransaction(
-                datastore,
-                transaction,
-                network,
-                fromAddress,
-                'sender'
-              )
-            }
-          })
+          if (bloom.test(fromAddress)) {
+            console.log(`Sender Address ${ fromAddress }`)
+
+            // Do the actual query and fetch
+            savePendingBlockTransaction(
+              datastore,
+              transaction,
+              network,
+              fromAddress,
+              'sender'
+            )
+          }
+          // })
         }
       }, 10000);
 
