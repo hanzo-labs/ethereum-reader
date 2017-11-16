@@ -314,10 +314,10 @@ function main() {
         // Initialize the Bloomfilter for a 1*10^-6 error rate for 1 million entries)
         var bloom = new BloomFilter(4096 * 4096 * 2, 20);
         // Your Google Cloud Platform project ID
-        var projectId = 'YOUR_PROJECT_ID';
+        var projectId = 'crowdstart-us';
         // Instantiates a client
         var datastore = Datastore({
-            projectId: 'crowdstart-us',
+            projectId: projectId,
             namespace: '_blockchains'
         });
         // Determine ethereum network
@@ -393,7 +393,7 @@ function main() {
             currentNumber++;
             var number = currentNumber;
             console.log(`Fetching New Block #${number}`);
-            web3.eth.getBlock(number, true, function (error, result) {
+            web3.eth.getBlock(number, (error, result) => {
                 if (error) {
                     console.log(`Error Fetching Block #${number}:\n`, error);
                     return;
@@ -410,21 +410,28 @@ function main() {
                     return __awaiter(this, void 0, void 0, function* () {
                         yield updateBloom(bloom, datastore, network);
                         // Iterate through transactions looking for ones we care about
-                        for (var transaction of result.transactions) {
-                            console.log(`Processing Block Transaction ${transaction.hash}`);
-                            var toAddress = transaction.to;
-                            var fromAddress = transaction.from;
-                            console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
-                            if (bloom.test(toAddress)) {
-                                console.log(`Receiver Address ${toAddress}`);
-                                // Do the actual query and fetch
-                                savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
-                            }
-                            if (bloom.test(fromAddress)) {
-                                console.log(`Sender Address ${fromAddress}`);
-                                // Do the actual query and fetch
-                                savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
-                            }
+                        for (var transactionId of result.transactions) {
+                            console.log(`Fetching New Block Transaction #${transactionId}:\n`, error);
+                            web3.eth.getTransaction(transactionId, (error, transaction) => {
+                                if (error) {
+                                    console.log(`Error Fetching Block Transaction #${transaction.hash}:\n`, error);
+                                    return;
+                                }
+                                console.log(`Processing Block Transaction ${transaction.hash}`);
+                                var toAddress = transaction.to;
+                                var fromAddress = transaction.from;
+                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
+                                if (bloom.test(toAddress)) {
+                                    console.log(`Receiver Address ${toAddress}`);
+                                    // Do the actual query and fetch
+                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
+                                }
+                                if (bloom.test(fromAddress)) {
+                                    console.log(`Sender Address ${fromAddress}`);
+                                    // Do the actual query and fetch
+                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
+                                }
+                            });
                         }
                     });
                 }, 10000);
