@@ -232,17 +232,11 @@ async function main() {
 
   setInterval(run, 1)
 
-  filter.watch(function(error, result) {
-    if (error) {
-      console.log('Error While Watching Blocks:\n', error)
-      return
-    }
+  function check() {
+    blockNumber = web3.eth.blockNumber
+  }
 
-    // console.log('Notified of new block', result.blockNumber)
-
-    // Get currentBlockNumber
-    blockNumber = result.blockNumber
-  })
+  setInterval(check, 1000)
 }
 
 main()
