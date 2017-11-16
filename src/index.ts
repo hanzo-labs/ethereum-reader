@@ -17,11 +17,11 @@ async function main() {
   var bloom = new BloomFilter(4096 * 4096 * 2, 20)
 
   // Your Google Cloud Platform project ID
-  var projectId = 'YOUR_PROJECT_ID'
+  var projectId = 'crowdstart-us'
 
   // Instantiates a client
   var datastore = Datastore({
-    projectId: 'crowdstart-us',
+    projectId: projectId,
     namespace: '_blockchains'
   })
 
