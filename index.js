@@ -308,7 +308,7 @@ var Datastore = require('@google-cloud/datastore');
 // How many confirmations does it take to confirm? (default: 12)
 var confirmations = process.env.CONFIRMATIONS || 12;
 // How many concurrent blocks can it be processing? (default: 20)
-var inflightLimit = process.env.INFLIGHT_LIMIT || 20;
+var inflightLimit = process.env.INFLIGHT_LIMIT || 10;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         // Initialize the Bloomfilter for a 1*10^-6 error rate for 1 million entries)
@@ -323,9 +323,9 @@ function main() {
         // Determine ethereum network
         var network = (process.env.ENVIRONMENT == 'production') ? 'ethereum' : 'ethereum-ropsten';
         // Determine geth/parity node URI
-        // GETH PROD: 'http://35.193.184.247:80'
+        // GETH PROD: 'http://35.193.184.247:13264'
         // PARITY PROD: 'http://35.192.92.62:13264'
-        var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.192.92.62:13264' : 'http://35.192.74.139:80';
+        var nodeURI = (process.env.ENVIRONMENT == 'production') ? 'http://35.193.184.247:13264' : 'http://35.192.74.139:13264';
         // Import Web3
         var Web3 = require('web3');
         console.log('Connecting to', nodeURI);
@@ -333,7 +333,7 @@ function main() {
         // Ensure a connection was actually established
         if (!web3.isConnected()) {
             console.log('Could Not Connected');
-            console.log(`Are you running 'sudo geth --cache=1024 --rpc --rpcaddr 0.0.0.0 --rpcport 80 --syncmode=fast --rpccorsdomain "*" in your geth node?'`);
+            console.log(`Are you running 'sudo geth --cache=1024 --rpc --rpcaddr 0.0.0.0 --rpcport 13264 --syncmode=fast --rpccorsdomain "*" in your geth node?'`);
             return;
         }
         // Report current full block
