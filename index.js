@@ -393,7 +393,7 @@ function main() {
             currentNumber++;
             var number = currentNumber;
             console.log(`Fetching New Block #${number}`);
-            web3.eth.getBlock(number, (error, result) => {
+            web3.eth.getBlock(number, true, (error, result) => {
                 if (error) {
                     console.log(`Error Fetching Block #${number}:\n`, error);
                     return;
@@ -410,28 +410,30 @@ function main() {
                     return __awaiter(this, void 0, void 0, function* () {
                         yield updateBloom(bloom, datastore, network);
                         // Iterate through transactions looking for ones we care about
-                        for (var transactionId of result.transactions) {
-                            console.log(`Fetching New Block Transaction #${transactionId}:\n`, error);
-                            web3.eth.getTransaction(transactionId, (error, transaction) => {
-                                if (error) {
-                                    console.log(`Error Fetching Block Transaction #${transaction.hash}:\n`, error);
-                                    return;
-                                }
-                                console.log(`Processing Block Transaction ${transaction.hash}`);
-                                var toAddress = transaction.to;
-                                var fromAddress = transaction.from;
-                                console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
-                                if (bloom.test(toAddress)) {
-                                    console.log(`Receiver Address ${toAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
-                                }
-                                if (bloom.test(fromAddress)) {
-                                    console.log(`Sender Address ${fromAddress}`);
-                                    // Do the actual query and fetch
-                                    savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
-                                }
-                            });
+                        for (var transaction of result.transactions) {
+                            // Manually fetch
+                            // for(var transactionId of result.transactions) {
+                            //   console.log(`Fetching New Block Transaction #${ transactionId }:\n`, error)
+                            //   web3.eth.getTransaction(transactionId, (error, transaction) => {
+                            if (error) {
+                                console.log(`Error Fetching Block Transaction #${transaction.hash}:\n`, error);
+                                return;
+                            }
+                            console.log(`Processing Block Transaction ${transaction.hash}`);
+                            var toAddress = transaction.to;
+                            var fromAddress = transaction.from;
+                            console.log(`Checking Addresses\nTo:  ${toAddress}\nFrom: ${fromAddress}`);
+                            if (bloom.test(toAddress)) {
+                                console.log(`Receiver Address ${toAddress}`);
+                                // Do the actual query and fetch
+                                savePendingBlockTransaction(datastore, transaction, network, toAddress, 'receiver');
+                            }
+                            if (bloom.test(fromAddress)) {
+                                console.log(`Sender Address ${fromAddress}`);
+                                // Do the actual query and fetch
+                                savePendingBlockTransaction(datastore, transaction, network, fromAddress, 'sender');
+                            }
+                            // })
                         }
                     });
                 }, 10000);
@@ -471,15 +473,10 @@ function main() {
             });
         }
         setInterval(run, 1);
-        filter.watch(function (error, result) {
-            if (error) {
-                console.log('Error While Watching Blocks:\n', error);
-                return;
-            }
-            // console.log('Notified of new block', result.blockNumber)
-            // Get currentBlockNumber
-            blockNumber = result.blockNumber;
-        });
+        function check() {
+            blockNumber = web3.eth.blockNumber;
+        }
+        setInterval(check, 1000);
     });
 }
 main();
