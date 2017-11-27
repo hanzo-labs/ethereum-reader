@@ -103,12 +103,6 @@ async function main() {
     toBlock:   'latest', //1892800,
   })
 
-  // Make sure things aren't screwy
-  if (lastBlock > web3.eth.blockNumber) {
-    lastBlock = web3.eth.blockNumber
-    console.log(`Fixing From Block #${ lastBlock }`)
-  }
-
   var lastNumber    = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1
   var currentNumber = lastNumber
   var blockNumber   = lastNumber
@@ -117,6 +111,10 @@ async function main() {
   function run() {
     // Ignore if inflight limit reached or blocknumber reached
     if (inflight > inflightLimit || currentNumber >= blockNumber) {
+      if (currentNumber > blockNumber) {
+        console.log(`Current Number ${ currentNumber } > Block Number ${ blockNumber }`)
+        currentNumber = blockNumber
+      }
       return
     }
 
