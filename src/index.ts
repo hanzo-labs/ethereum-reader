@@ -103,6 +103,11 @@ async function main() {
     toBlock:   'latest', //1892800,
   })
 
+  // Make sure things aren't screwy
+  if (lastBlock > web3.eth.blockNumber) {
+    lastBlock = web3.eth.blockNumber
+  }
+
   var lastNumber    = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1
   var currentNumber = lastNumber
   var blockNumber   = lastNumber
