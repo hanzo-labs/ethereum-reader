@@ -106,18 +106,13 @@ async function main() {
   // Make sure things aren't screwy
   if (lastBlock > web3.eth.blockNumber) {
     lastBlock = web3.eth.blockNumber
+    console.log(`Fixing From Block #${ lastBlock }`)
   }
 
   var lastNumber    = lastBlock == 'latest' ? web3.eth.blockNumber : lastBlock - 1
   var currentNumber = lastNumber
   var blockNumber   = lastNumber
   var inflight      = 0
-
-  // because I screwed up
-  if (currentNumber > lastNumber) {
-    currentNumber = lastNumber
-    console.log(`Fixing From Block #${ currentNumber }`)
-  }
 
   function run() {
     // Ignore if inflight limit reached or blocknumber reached
