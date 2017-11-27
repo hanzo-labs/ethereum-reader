@@ -383,6 +383,10 @@ function main() {
         var currentNumber = lastNumber;
         var blockNumber = lastNumber;
         var inflight = 0;
+        // because I screwed up
+        if (currentNumber > blockNumber) {
+            blockNumber = currentNumber;
+        }
         function run() {
             // Ignore if inflight limit reached or blocknumber reached
             if (inflight > inflightLimit || currentNumber >= blockNumber) {
@@ -393,7 +397,7 @@ function main() {
             currentNumber++;
             var number = currentNumber;
             console.log(`Fetching New Block #${number}`);
-            web3.eth.getBlock(number, true, (error, result) => {
+            web3.eth.getBlock(number, (error, result) => {
                 if (error) {
                     console.log(`Error Fetching Block #${number}:\n`, error);
                     return;
@@ -415,10 +419,10 @@ function main() {
                             // for(var transactionId of result.transactions) {
                             //   console.log(`Fetching New Block Transaction #${ transactionId }:\n`, error)
                             //   web3.eth.getTransaction(transactionId, (error, transaction) => {
-                            if (error) {
-                                console.log(`Error Fetching Block Transaction #${transaction.hash}:\n`, error);
-                                return;
-                            }
+                            // if (error) {
+                            //   console.log(`Error Fetching Block Transaction #${ transaction.hash }:\n`, error)
+                            //   return
+                            // }
                             console.log(`Processing Block Transaction ${transaction.hash}`);
                             var toAddress = transaction.to;
                             var fromAddress = transaction.from;
