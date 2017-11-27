@@ -109,9 +109,9 @@ async function main() {
   var inflight      = 0
 
   // because I screwed up
-  if (currentNumber > blockNumber) {
-    blockNumber = currentNumber
-    console.log(`Fixing From Block #${ lastBlock }`)
+  if (currentNumber > lastNumber) {
+    currentNumber = lastNumber
+    console.log(`Fixing From Block #${ currentNumber }`)
   }
 
   function run() {
