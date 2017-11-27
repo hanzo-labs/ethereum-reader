@@ -111,6 +111,7 @@ async function main() {
   // because I screwed up
   if (currentNumber > blockNumber) {
     blockNumber = currentNumber
+    console.log(`Fixing From Block #${ lastBlock }`)
   }
 
   function run() {
