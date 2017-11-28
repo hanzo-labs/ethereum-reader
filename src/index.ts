@@ -127,7 +127,7 @@ async function main() {
 
     console.log(`Fetching New Block #${ number }`)
 
-    web3.eth.getBlock(number, (error, result) => {
+    web3.eth.getBlock(number, true, (error, result) => {
       if (error) {
         console.log(`Error Fetching Block #${ number }:\n`, error)
         return
