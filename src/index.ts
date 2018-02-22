@@ -94,7 +94,7 @@ async function main() {
 
   console.log('Start Watching For New Blocks')
 
-  // lastBlock = 1962800
+  lastBlock = 2387758
 
   // Start watching for new blocks
   var filter = web3.eth.filter({
@@ -240,7 +240,14 @@ async function main() {
   setInterval(run, 1)
 
   function check() {
-    blockNumber = web3.eth.blockNumber
+    web3.eth.getBlockNumber((error, n) => {
+      if (error) {
+        console.log(`Error getting blockNumber\n`, error)
+        return
+      }
+
+      blockNumber = n
+    })
   }
 
   setInterval(check, 1000)

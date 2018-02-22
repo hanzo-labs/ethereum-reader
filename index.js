@@ -372,7 +372,7 @@ function main() {
         }
         console.log('Additional Query Info:\n', JSON.stringify(qInfo));
         console.log('Start Watching For New Blocks');
-        // lastBlock = 1962800
+        lastBlock = 2387758;
         // Start watching for new blocks
         var filter = web3.eth.filter({
             // 1892728
@@ -383,13 +383,13 @@ function main() {
         var currentNumber = lastNumber;
         var blockNumber = lastNumber;
         var inflight = 0;
-        // because I screwed up
-        if (currentNumber > blockNumber) {
-            blockNumber = currentNumber;
-        }
         function run() {
             // Ignore if inflight limit reached or blocknumber reached
             if (inflight > inflightLimit || currentNumber >= blockNumber) {
+                if (currentNumber > blockNumber) {
+                    console.log(`Current Number ${currentNumber} > Block Number ${blockNumber}`);
+                    currentNumber = blockNumber;
+                }
                 return;
             }
             console.log(`\nInflight Requests: ${inflight}\nCurrent Block  #${currentNumber}\nTarget Block #${blockNumber}\n`);
@@ -397,7 +397,7 @@ function main() {
             currentNumber++;
             var number = currentNumber;
             console.log(`Fetching New Block #${number}`);
-            web3.eth.getBlock(number, (error, result) => {
+            web3.eth.getBlock(number, true, (error, result) => {
                 if (error) {
                     console.log(`Error Fetching Block #${number}:\n`, error);
                     return;
@@ -478,7 +478,13 @@ function main() {
         }
         setInterval(run, 1);
         function check() {
-            blockNumber = web3.eth.blockNumber;
+            web3.eth.getBlockNumber((error, n) => {
+                if (error) {
+                    console.log(`Error getting blockNumber\n`, error);
+                    return;
+                }
+                blockNumber = n;
+            });
         }
         setInterval(check, 1000);
     });
